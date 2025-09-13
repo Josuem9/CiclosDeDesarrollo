@@ -1,51 +1,63 @@
 import sqlite3
 import os
 
-# Definimos la ruta donde se guardará la base de datos SQLite
 DB_PATH = os.path.join(os.path.dirname(__file__), "../data/tasks.db")
 
 def init_db():
-    """Inicializa la base de datos y crea la tabla si no existe."""
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)  # Crea carpeta /data si no existe
+    """Crea la base de datos y la tabla si no existen."""
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS tasks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,        -- identificador único
-            title TEXT NOT NULL,                         -- título de la tarea
-            status TEXT CHECK(status IN ('pendiente','completada')) NOT NULL DEFAULT 'pendiente'
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            status TEXT CHECK(status IN ('pendiente','completada')) NOT NULL DEFAULT 'pendiente',
+            priority TEXT CHECK(priority IN ('Alta','Media','Baja')) NOT NULL DEFAULT 'Media'
         )
     ''')
     conn.commit()
     conn.close()
 
-def add_task(title):
-    """Agrega una nueva tarea con estado pendiente."""
+def add_task(title, priority="Media"):
+    """Agrega una nueva tarea con título y prioridad."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO tasks (title, status) VALUES (?, 'pendiente')", (title,))
+    cursor.execute("INSERT INTO tasks (title, status, priority) VALUES (?, 'pendiente', ?)", (title, priority))
     conn.commit()
     conn.close()
 
-def get_tasks():
-    """Obtiene todas las tareas almacenadas."""
+def get_tasks(filter_status=None, search=None):
+    """Obtiene todas las tareas, con filtros opcionales."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, title, status FROM tasks")
+
+    query = "SELECT id, title, status, priority FROM tasks WHERE 1=1"
+    params = []
+
+    if filter_status:
+        query += " AND status = ?"
+        params.append(filter_status)
+
+    if search:
+        query += " AND title LIKE ?"
+        params.append(f"%{search}%")
+
+    cursor.execute(query, tuple(params))
     rows = cursor.fetchall()
     conn.close()
     return rows
 
-def update_task(task_id, new_title):
-    """Actualiza el título de una tarea existente."""
+def update_task(task_id, new_title, new_priority):
+    """Actualiza título y prioridad de una tarea."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("UPDATE tasks SET title = ? WHERE id = ?", (new_title, task_id))
+    cursor.execute("UPDATE tasks SET title = ?, priority = ? WHERE id = ?", (new_title, new_priority, task_id))
     conn.commit()
     conn.close()
 
 def delete_task(task_id):
-    """Elimina una tarea por su ID."""
+    """Elimina una tarea por ID."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id,))

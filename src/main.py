@@ -1,8 +1,7 @@
-import tkinter as tk
+import customtkinter as ctk
 from gui import TaskApp
 
 if __name__ == "__main__":
-    # Inicia la aplicación gráfica
-    root = tk.Tk()
+    root = ctk.CTk()
     app = TaskApp(root)
     root.mainloop()
